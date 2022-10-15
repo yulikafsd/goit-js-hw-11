@@ -1,11 +1,11 @@
 import axios from 'axios';
 import { throttle, debounce } from 'lodash';
 import 'simplelightbox/dist/simple-lightbox.min.css';
+import { Notify } from 'notiflix';
 import SimpleLightbox from 'simplelightbox';
+import markupTpl from './templates/markup.hbs';
 import { getRefs } from './js/getRefs';
 import { fetchPictures } from './js/fetchPictures';
-import { onSuccess, onFailure } from './js/notifications';
-import { renderMarkup } from './js/renderMarkup';
 
 const { form, formButton, loadButton, galleryEl } = getRefs();
 const input = form.elements.searchQuery;
@@ -31,20 +31,31 @@ function processQuery(r) {
     makeGallery(r.hits);
     gallery = new SimpleLightbox('.gallery a');
     onSuccess(r.totalHits);
-    document.addEventListener('scroll', scrollSmooth);
+    // document.addEventListener('scroll', scrollSmooth);
   }
+}
+
+function onSuccess(amount) {
+  const images = amount !== 1 ? 'images' : 'image';
+  Notify.success(`Hooray! We found ${amount} ${images}`);
+}
+
+function onFailure() {
+  Notify.failure(
+    'Sorry, there are no images matching your search query. Please try again.'
+  );
 }
 
 function handleError() {
   Notify.failure('Oops, something went wrong. Try again');
 }
 
-function makeGallery(arr) {
-  galleryEl.insertAdjacentHTML('beforeend', renderMarkup(arr));
-}
-
 function clearGallery() {
   galleryEl.innerHTML = '';
+}
+
+function makeGallery(arr) {
+  galleryEl.insertAdjacentHTML('beforeend', markupTpl(arr));
 }
 
 function onInput() {
@@ -65,7 +76,6 @@ function disableButton() {
 
 function onClickShowModal(e) {
   if (e.target === e.currentTarget) {
-    console.log(`e.target === e.currentTarget`);
     return;
   }
   galleryEl.removeEventListener('click', onClickShowModal);
