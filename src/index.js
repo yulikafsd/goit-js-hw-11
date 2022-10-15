@@ -1,43 +1,52 @@
 import axios from 'axios';
-import { throttle, debounce } from 'lodash';
+import { throttle, debounce, ceil } from 'lodash';
 import 'simplelightbox/dist/simple-lightbox.min.css';
-import { Notify } from 'notiflix';
 import SimpleLightbox from 'simplelightbox';
-import markupTpl from './templates/markup.hbs';
+import { Notify } from 'notiflix';
 import { getRefs } from './js/getRefs';
-import { fetchPictures } from './js/fetchPictures';
+import { PicsApiService } from './js/api-service';
+import markupTpl from './templates/markup.hbs';
 
-const { form, formButton, loadButton, galleryEl } = getRefs();
+const { form, searchButton, loadButton, galleryEl } = getRefs();
 const input = form.elements.searchQuery;
 
 form.addEventListener('submit', onSubmit);
 input.addEventListener('input', onInput);
 galleryEl.addEventListener('click', onClickShowModal);
+loadButton.addEventListener('click', onLoadMore);
 
-let pageNum = 1;
 let gallery = '';
 
-function onSubmit(e) {
-  e.preventDefault();
-  const query = e.currentTarget.elements.searchQuery.value.trim();
-  fetchPictures(query).then(processQuery).catch(handleError);
+const picsApiService = new PicsApiService();
+
+function onSubmit(event) {
+  event.preventDefault();
+  hideLoadButton();
+  picsApiService.query = event.currentTarget.elements.searchQuery.value.trim();
+  picsApiService.resetPage();
+  picsApiService.fetchPictures().then(handleSuccess).catch(handleError);
 }
 
-function processQuery(r) {
-  if (r.totalHits <= 0) {
+function handleSuccess(response) {
+  if (response.totalHits <= 0) {
     onFailure();
   } else {
     clearGallery();
-    makeGallery(r.hits);
+    makeGallery(response.hits);
+    onSuccess(response.totalHits);
+    picsApiService.lastPage = Math.ceil(
+      response.totalHits / picsApiService.perPage
+    );
     gallery = new SimpleLightbox('.gallery a');
-    onSuccess(r.totalHits);
+
+    if (picsApiService.lastPage > 1) {
+      showLoadButton();
+    } else {
+      hideLoadButton();
+    }
+
     // document.addEventListener('scroll', scrollSmooth);
   }
-}
-
-function onSuccess(amount) {
-  const images = amount !== 1 ? 'images' : 'image';
-  Notify.success(`Hooray! We found ${amount} ${images}`);
 }
 
 function onFailure() {
@@ -46,7 +55,13 @@ function onFailure() {
   );
 }
 
-function handleError() {
+function onSuccess(amount) {
+  const images = amount !== 1 ? 'images' : 'image';
+  Notify.success(`Hooray! We found ${amount} ${images}`);
+}
+
+function handleError(error) {
+  console.log(error);
   Notify.failure('Oops, something went wrong. Try again');
 }
 
@@ -60,18 +75,26 @@ function makeGallery(arr) {
 
 function onInput() {
   if (input.value !== '') {
-    enableButton();
+    enableSearchButton();
   } else {
-    disableButton();
+    disableSearchButton();
   }
 }
 
-function enableButton() {
-  formButton.disabled = false;
+function enableSearchButton() {
+  searchButton.disabled = false;
 }
 
-function disableButton() {
-  formButton.disabled = true;
+function disableSearchButton() {
+  searchButton.disabled = true;
+}
+
+function hideLoadButton() {
+  loadButton.classList.add('is-hidden');
+}
+
+function showLoadButton() {
+  loadButton.classList.remove('is-hidden');
 }
 
 function onClickShowModal(e) {
@@ -80,6 +103,28 @@ function onClickShowModal(e) {
   }
   galleryEl.removeEventListener('click', onClickShowModal);
   gallery.on('show.simplelightbox');
+}
+
+function onLoadMore() {
+  if (picsApiService.lastPage === picsApiService.page) {
+    hideLoadButton();
+    window.onscroll = function () {
+      if (window.innerHeight + window.scrollY >= document.body.offsetHeight) {
+        Notify.warning(
+          `We're sorry, but you've reached the end of search results`
+        );
+      }
+    };
+  }
+
+  picsApiService
+    .fetchPictures()
+    .then(response => {
+      const newGallery = makeGallery(response.hits);
+      gallery.refresh();
+      return newGallery;
+    })
+    .catch(handleError);
 }
 
 function scrollSmooth() {
@@ -92,5 +137,3 @@ function scrollSmooth() {
     behavior: 'smooth',
   });
 }
-
-//   gallery.refresh(); при клике по кнопке погрузить еще
