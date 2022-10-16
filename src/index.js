@@ -5,11 +5,11 @@ import { Notify } from 'notiflix';
 import { getRefs } from './js/getRefs';
 import { FetchService } from './js/fetchService';
 import markupTpl from './templates/markup.hbs';
+import { renderMarkup } from './js/renderMarkup';
 
 //Constants:
 const { form, searchButton, loadButton, galleryEl } = getRefs();
 const input = form.elements.searchQuery;
-let scrollHeight = '';
 
 //Classes:
 const lightbox = new SimpleLightbox('.gallery a');
@@ -63,13 +63,13 @@ function handleError(error) {
 function onLoadMore() {
   if (fetchService.lastPage === fetchService.page) {
     hideLoadButton();
-    // notifyOnPageEnd();
+    notifyOnPageEnd();
   }
 
   fetchService
     .fetchPictures()
-    .then(response => {
-      return (newGallery = renderGallery(response.hits));
+    .then(({ hits }) => {
+      return (newGallery = renderGallery(hits));
     })
     .catch(handleError);
 }
@@ -127,11 +127,17 @@ function scrollSmooth() {
 }
 
 function notifyOnPageEnd() {
-  window.onscroll = function () {
-    if (window.innerHeight + window.scrollY >= document.body.offsetHeight) {
+  window.addEventListener('scroll', debounce(onScroll, 300));
+  const initialCoord = window.scrollY;
+  const lastSetHeight =
+    ((fetchService.totalHits % fetchService.perPage) / 4) * 250;
+
+  function onScroll() {
+    if (window.scrollY > initialCoord + lastSetHeight) {
       Notify.warning(
         `We're sorry, but you've reached the end of search results`
       );
+      window.removeEventListener('scroll', debounce(onScroll, 300));
     }
-  };
+  }
 }
