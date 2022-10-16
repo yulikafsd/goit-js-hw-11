@@ -1,63 +1,58 @@
-import axios from 'axios';
-import { throttle, debounce, ceil } from 'lodash';
 import 'simplelightbox/dist/simple-lightbox.min.css';
+import { debounce } from 'lodash';
 import SimpleLightbox from 'simplelightbox';
 import { Notify } from 'notiflix';
 import { getRefs } from './js/getRefs';
-import { PicsApiService } from './js/api-service';
+import { FetchService } from './js/fetchService';
 import markupTpl from './templates/markup.hbs';
 
+//Constants:
 const { form, searchButton, loadButton, galleryEl } = getRefs();
 const input = form.elements.searchQuery;
+let scrollHeight = '';
 
+//Classes:
+const lightbox = new SimpleLightbox('.gallery a');
+const fetchService = new FetchService();
+
+// Listeners:
+input.addEventListener('input', debounce(onInput, 300));
 form.addEventListener('submit', onSubmit);
-input.addEventListener('input', onInput);
-galleryEl.addEventListener('click', onClickShowModal);
 loadButton.addEventListener('click', onLoadMore);
 
-let gallery = '';
-
-const picsApiService = new PicsApiService();
+function onInput(e) {
+  searchButton.disabled = e.target.value !== '' ? false : true;
+}
 
 function onSubmit(event) {
   event.preventDefault();
-  hideLoadButton();
-  picsApiService.query = event.currentTarget.elements.searchQuery.value.trim();
-  picsApiService.resetPage();
-  picsApiService.fetchPictures().then(handleSuccess).catch(handleError);
-}
 
-function handleSuccess(response) {
-  if (response.totalHits <= 0) {
-    onFailure();
-  } else {
-    clearGallery();
-    makeGallery(response.hits);
-    onSuccess(response.totalHits);
-    picsApiService.lastPage = Math.ceil(
-      response.totalHits / picsApiService.perPage
-    );
-    gallery = new SimpleLightbox('.gallery a');
+  const {
+    elements: { searchQuery },
+  } = event.currentTarget;
+  fetchService.query = searchQuery.value.trim();
 
-    if (picsApiService.lastPage > 1) {
-      showLoadButton();
-    } else {
-      hideLoadButton();
-    }
-
-    // document.addEventListener('scroll', scrollSmooth);
+  if (!loadButton.classList.contains('is-hidden')) {
+    hideLoadButton();
   }
+
+  fetchService.resetPage();
+  fetchService.fetchPictures().then(handleSuccess).catch(handleError);
 }
 
-function onFailure() {
-  Notify.failure(
-    'Sorry, there are no images matching your search query. Please try again.'
-  );
-}
+function handleSuccess({ hits, totalHits }) {
+  if (totalHits === 0) {
+    notifyFailure();
+  } else {
+    fetchService.totalHits = totalHits;
+    clearGallery();
+    renderGallery(hits);
+    notifySuccess(totalHits);
 
-function onSuccess(amount) {
-  const images = amount !== 1 ? 'images' : 'image';
-  Notify.success(`Hooray! We found ${amount} ${images}`);
+    if (fetchService.lastPage > 1) {
+      showLoadButton();
+    }
+  }
 }
 
 function handleError(error) {
@@ -65,29 +60,21 @@ function handleError(error) {
   Notify.failure('Oops, something went wrong. Try again');
 }
 
-function clearGallery() {
-  galleryEl.innerHTML = '';
-}
-
-function makeGallery(arr) {
-  galleryEl.insertAdjacentHTML('beforeend', markupTpl(arr));
-}
-
-function onInput() {
-  if (input.value !== '') {
-    enableSearchButton();
-  } else {
-    disableSearchButton();
+function onLoadMore() {
+  if (fetchService.lastPage === fetchService.page) {
+    hideLoadButton();
+    // notifyOnPageEnd();
   }
+
+  fetchService
+    .fetchPictures()
+    .then(response => {
+      return (newGallery = renderGallery(response.hits));
+    })
+    .catch(handleError);
 }
 
-function enableSearchButton() {
-  searchButton.disabled = false;
-}
-
-function disableSearchButton() {
-  searchButton.disabled = true;
-}
+// Button functions
 
 function hideLoadButton() {
   loadButton.classList.add('is-hidden');
@@ -97,43 +84,54 @@ function showLoadButton() {
   loadButton.classList.remove('is-hidden');
 }
 
-function onClickShowModal(e) {
-  if (e.target === e.currentTarget) {
-    return;
-  }
-  galleryEl.removeEventListener('click', onClickShowModal);
-  gallery.on('show.simplelightbox');
+// Notifications
+
+function notifySuccess(amount) {
+  const images = amount !== 1 ? 'images' : 'image';
+  Notify.success(`Hooray! We found ${amount} ${images}`);
 }
 
-function onLoadMore() {
-  if (picsApiService.lastPage === picsApiService.page) {
-    hideLoadButton();
-    window.onscroll = function () {
-      if (window.innerHeight + window.scrollY >= document.body.offsetHeight) {
-        Notify.warning(
-          `We're sorry, but you've reached the end of search results`
-        );
-      }
-    };
-  }
-
-  picsApiService
-    .fetchPictures()
-    .then(response => {
-      const newGallery = makeGallery(response.hits);
-      gallery.refresh();
-      return newGallery;
-    })
-    .catch(handleError);
+function notifyFailure() {
+  Notify.failure(
+    'Sorry, there are no images matching your search query. Please try again.'
+  );
 }
+
+// Gallery functions
+
+function clearGallery() {
+  galleryEl.innerHTML = '';
+}
+
+function renderGallery(arr) {
+  galleryEl.insertAdjacentHTML('beforeend', markupTpl(arr));
+  lightbox.refresh();
+  scrollSmooth();
+}
+
+// Scroll functions
 
 function scrollSmooth() {
-  const { height: cardHeight } = document
-    .querySelector('.gallery')
-    .firstElementChild.getBoundingClientRect();
+  let distance = 0;
+
+  if (fetchService.page === 2) {
+    distance = galleryEl.firstElementChild.getBoundingClientRect().top;
+  } else if (fetchService.page > 1) {
+    distance = galleryEl.lastElementChild.getBoundingClientRect().height;
+  }
 
   window.scrollBy({
-    top: cardHeight * 2,
+    top: distance,
     behavior: 'smooth',
   });
+}
+
+function notifyOnPageEnd() {
+  window.onscroll = function () {
+    if (window.innerHeight + window.scrollY >= document.body.offsetHeight) {
+      Notify.warning(
+        `We're sorry, but you've reached the end of search results`
+      );
+    }
+  };
 }

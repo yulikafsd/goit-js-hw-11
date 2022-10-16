@@ -1,4 +1,3 @@
-
 {{#each this}}
 <a href="{{largeImageURL}}">
     <div class="photo-card">
@@ -7,28 +6,28 @@
             <p class="info-item">
                 <b>Likes</b>
                 <svg class="gallery-icon" width="16px" height="16px">
-                    <use class="icon" href="./src/images/icons.svg#icon-heart"></use>
+                    <use class="icon" href="{{icons}}#icon-heart"></use>
                 </svg>
                 {{likes}}
             </p>
             <p class="info-item">
                 <b>Views</b>
                 <svg class="gallery-icon" width="16px" height="16px">
-                    <use class="icon" href="./src/images/icons.svg#icon-eye"></use>
+                    <use class="icon" href="{{icons}}#icon-eye"></use>
                 </svg>
                 {{views}}
             </p>
             <p class="info-item">
                 <b>Comments</b>
                 <svg class="gallery-icon" width="16px" height="16px">
-                    <use class="icon" href="./src/images/icons.svg#icon-bubbles"></use>
+                    <use class="icon" href="{{icons}}#icon-bubbles"></use>
                 </svg>
                 {{comments}}
             </p>
             <p class="info-item">
                 <b>Downloads</b>
                 <svg class="gallery-icon" width="16px" height="16px">
-                    <use class="icon" href="./src/images/icons.svg#icon-download"></use>
+                    <use class="icon" href="{{icons}}#icon-download"></use>
                 </svg>
                 {{downloads}}
             </p>
