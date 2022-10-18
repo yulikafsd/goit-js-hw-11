@@ -4,5 +4,6 @@ export function getRefs() {
     searchButton: document.querySelector('.form-button'),
     loadButton: document.querySelector('.load-more'),
     galleryEl: document.querySelector('div.gallery'),
+    loader: document.querySelector('.loader'),
   };
 }

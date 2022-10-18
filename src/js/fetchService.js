@@ -2,11 +2,6 @@ import axios from 'axios';
 
 const API_URL = 'https://pixabay.com/api/';
 const API_KEY = '30604189-8e45b74ccc7e3af0dfc4ff4c6';
-const searchParams = new URLSearchParams({
-  image_type: 'photo',
-  orientation: 'horizontal',
-  safesearch: 'true',
-});
 
 export class FetchService {
   constructor() {
@@ -17,14 +12,25 @@ export class FetchService {
   }
 
   fetchPictures() {
-    const url = `${API_URL}?key=${API_KEY}&q=${this.searchQuery}&${searchParams}&page=${this.page}&per_page=${this.perPage}`;
-    return fetch(url).then(response => {
-      if (!response.ok) {
-        throw new Error(response.status);
-      }
-      this.incrementPage();
-      return response.json();
-    });
+    const url = `${API_URL}?key=${API_KEY}`;
+    return axios
+      .get(url, {
+        params: {
+          q: this.searchQuery,
+          image_type: 'photo',
+          orientation: 'horizontal',
+          safesearch: 'true',
+          page: this.page,
+          per_page: this.perPage,
+        },
+      })
+      .then(response => {
+        if (!response.status === 200) {
+          throw new Error(response.status);
+        }
+        this.incrementPage();
+        return response.data;
+      });
   }
 
   get lastPage() {
