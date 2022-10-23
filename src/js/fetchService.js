@@ -11,10 +11,11 @@ export class FetchService {
     this.perPage = 40;
   }
 
-  fetchPictures() {
+  async fetchPictures() {
     const url = `${API_URL}?key=${API_KEY}`;
-    return axios
-      .get(url, {
+
+    try {
+      const response = await axios.get(url, {
         params: {
           q: this.searchQuery,
           image_type: 'photo',
@@ -23,14 +24,13 @@ export class FetchService {
           page: this.page,
           per_page: this.perPage,
         },
-      })
-      .then(response => {
-        if (!response.status === 200) {
-          throw new Error(response.status);
-        }
-        this.incrementPage();
-        return response.data;
       });
+      this.incrementPage();
+      return response.data;
+    } catch (error) {
+      this.decrementPage();
+      console.log(error);
+    }
   }
 
   get lastPage() {
@@ -39,6 +39,10 @@ export class FetchService {
 
   incrementPage() {
     this.page += 1;
+  }
+
+  decrementPage() {
+    this.page -= 1;
   }
 
   resetPage() {

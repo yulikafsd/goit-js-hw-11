@@ -1,21 +1,93 @@
 .search-form {
+    z-index: 999;
     display: flex;
     align-items: center;
-    justify-content: center;
-    background-color: rgb(66, 66, 186);
+    // justify-content: center;
+    background-color: rgb(66, 66, 186, 90%);
     height: 50px;
 
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
-    z-index: 999px;
     box-shadow: 0px 0px 6px 0px rgba(0, 0, 0, 0.5);
     transition: top 150ms linear;
 }
 
+.search-form:before,
+.search-form:after {
+    content: "";
+    position: relative;
+    top: 35px;
+    left: 2em;
+    width: 25px;
+    height: 20px;
+    background-image: linear-gradient(to right top, transparent 50%, rgb(66, 66, 186) 50%);
+}
+
+.search-form:after {
+    transform: scaleX(-1);
+    left: -52em;
+}
+
 .hidden {
     top: -50px;
+}
+
+.checkbox-wrapper {
+    margin-right: 20vw;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.checkbox__text {
+    color: #fff;
+}
+
+input[type="checkbox"] {
+    visibility: hidden;
+
+    &:checked+label {
+        background-color: #fff;
+        border-color: #fff;
+        // рамка неактивная
+        // кружок неактивный
+
+        &:before {
+            transform: translateX(20px);
+            background-color: rgb(66, 66, 186);
+        }
+    }
+}
+
+label {
+    display: flex;
+    width: 40px;
+    height: 20px;
+    border: 2px solid; 
+    border-color: #fff;
+    background-color: transparent;
+    border-radius: 99em;
+    position: relative;
+    transition: all .5s ease-in-out;
+    transform-origin: 50% 50%;
+    cursor: pointer;
+    // рамка активная
+    // кружок активный
+
+    &:before {
+        transition: transform .5s ease;
+        content: "";
+        display: block;
+        position: absolute;
+        width: 14px;
+        height: 14px;
+        background-color: #fff;
+        border-radius: 50%;
+        top: 1px;
+        left: 1px;
+    }
 }
 
 .form-input {
