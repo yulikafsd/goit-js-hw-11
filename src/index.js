@@ -59,9 +59,10 @@ async function onSubmit(event) {
     // If no pictures found - notify failure
     if (promise.totalHits < 1) {
       notifyFailure();
+      clearGallery();
     } else {
       handleSuccess(promise);
-      checkButtonStat();
+      checkLastPage();
     }
 
     hideEl(loader);
@@ -77,7 +78,7 @@ async function onLoadMore() {
 
     const promise = await fetchService.fetchPictures();
     const gallery = await renderGallery(promise.hits);
-    checkButtonStat();
+    checkLastPage();
     hideEl(loader);
     loadButton.disabled = false;
   } catch (error) {
@@ -102,15 +103,24 @@ function onScrollToggleForm() {
 }
 
 function onChange() {
-  console.log(`change`);
-  if (checkbox.checked) {
-    console.log(`off`);
-    spanEl.textContent = 'Off';
-  }
+  if (
+    fetchService.query !== '' &&
+    fetchService.lastPage !== 1 &&
+    fetchService.lastPage !== fetchService.page - 1
+  ) {
+    if (checkbox.checked) {
+      console.log(`off`);
+      spanEl.textContent = 'Off';
+      hideButton(loadButton);
+      addInfiniteScrollListeners();
+    }
 
-  if (!checkbox.checked) {
-    console.log(`on`);
-    spanEl.textContent = 'On';
+    if (!checkbox.checked) {
+      console.log(`on`);
+      spanEl.textContent = 'On';
+      showButton(loadButton, fetchService);
+      removeInfiniteScrollListeners();
+    }
   }
 }
 
@@ -120,7 +130,7 @@ async function handleSuccess({ hits, totalHits }) {
     const clear = await clearGallery();
     const gallery = await renderGallery(hits);
     notifySuccess(totalHits);
-    checkButtonStat();
+    checkLastPage();
   } catch (error) {
     handleError(error);
   }
@@ -154,7 +164,7 @@ function processPageEnd() {
   }
 }
 
-function checkButtonStat() {
+function checkLastPage() {
   const currentFetchPage = fetchService.page - 1;
   // If current fetched page is the last page =>
   // don't show loadMore button and add scroll listener to notify when page ends
@@ -162,14 +172,9 @@ function checkButtonStat() {
     processPageEnd();
     hideButton(loadButton);
     removeInfiniteScrollListeners();
-  }
-
-  // If more than 1 page is found & checkbox is off => show loadMore button and turn infscroll off
-  else if (!checkbox.checked) {
+  } else if (!checkbox.checked) {
     showButton(loadButton, fetchService);
     removeInfiniteScrollListeners();
-
-    // If more than 1 page is found & checkbox is on => hide btn and turn infscroll on
   } else if (checkbox.checked) {
     hideButton(loadButton);
     addInfiniteScrollListeners();
