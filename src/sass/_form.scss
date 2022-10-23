@@ -14,20 +14,20 @@
     transition: top 150ms linear;
 }
 
-.search-form:before,
-.search-form:after {
+.flag:before,
+.flag:after {
     content: "";
-    position: relative;
-    top: 35px;
-    left: 2em;
+    position: absolute;
+    top: 50px;
+    left: 20px;
     width: 25px;
     height: 20px;
     background-image: linear-gradient(to right top, transparent 50%, rgb(66, 66, 186) 50%);
 }
 
-.search-form:after {
+.flag:after {
     transform: scaleX(-1);
-    left: -52em;
+    left: 20px;
 }
 
 .hidden {
@@ -36,6 +36,7 @@
 
 .checkbox-wrapper {
     margin-right: 20vw;
+    margin-left: 2vw;
     display: flex;
     align-items: center;
     justify-content: center;

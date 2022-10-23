@@ -18,7 +18,7 @@ import { showEl, hideEl } from './js/toggleEl';
 import { scrollSmooth } from './js/scrollSmoothFn';
 
 //Constants:
-const { form, searchButton, checkbox, galleryEl, loadButton, loader } =
+const { form, spanEl, searchButton, checkbox, galleryEl, loadButton, loader } =
   getRefs();
 const input = form.elements.searchQuery;
 const scrollThrottle = throttle(checkPosition, 300);
@@ -37,6 +37,7 @@ input.addEventListener('input', debounce(onInput, 200));
 form.addEventListener('submit', onSubmit);
 loadButton.addEventListener('click', onLoadMore);
 window.addEventListener('scroll', throttle(onScrollToggleForm, 200));
+checkbox.addEventListener('change', onChange);
 
 // Main functions:
 
@@ -98,6 +99,19 @@ function onScrollToggleForm() {
     form.classList.remove('hidden');
   }
   prevScrollPos = currentScrollPos;
+}
+
+function onChange() {
+  console.log(`change`);
+  if (checkbox.checked) {
+    console.log(`off`);
+    spanEl.textContent = 'Off';
+  }
+
+  if (!checkbox.checked) {
+    console.log(`on`);
+    spanEl.textContent = 'On';
+  }
 }
 
 async function handleSuccess({ hits, totalHits }) {
